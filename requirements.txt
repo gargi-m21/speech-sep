@@ -1,12 +1,11 @@
-# --- Local (CPU) : enough to develop + run the evaluation harness ---
+torch>=2.0.0
+torchaudio>=2.0.0
 numpy
-pandas
-soundfile
-torch            # CPU wheel is fine; evaluate.py needs no GPU
-
-# --- To RUN separate.py (pretrained models) ---
-# On Kaggle these are already installed; locally only needed if you want to
-# smoke-test a model on CPU.
+pyyaml
 speechbrain>=1.0
 torchaudio
 huggingface_hub
+numpy
+pandas
+soundfile
+torch
