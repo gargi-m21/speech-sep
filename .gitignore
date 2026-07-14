@@ -1,0 +1,14 @@
+# Ignore data directory (contains audio mixtures)
+data/
+
+# Ignore Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+Thumbs.db
