@@ -76,3 +76,51 @@ fix that *before* reporting any MTC-Net / SepTDA numbers.
 - To score any model: point `evaluate.py --est-dir` at that folder + the matching
   LibriMix `--metadata` / `--data-root` / `--n-src`. Works identically for
   MTC-Net and SepTDA outputs.
+
+---
+
+## 🌐 Running the MTC-Net Web Application
+
+We integrated a premium Web App featuring:
+- **FastAPI backend** that loads checkpoints and exposes a `/separate` REST API.
+- **Next.js frontend** designed with a dark glassmorphism theme, interactive architecture flow, and `wavesurfer.js` audio players.
+
+### Prerequisites
+- Python 3.8+
+- Node.js 18+ and npm
+
+### Step 1: Install Dependencies
+1. **Python Dependencies** (install from root directory):
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Frontend Dependencies**:
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
+
+### Step 2: Start the FastAPI Backend
+Start the FastAPI server from the repository root:
+```bash
+python -m uvicorn backend.app:app --reload --port 8000
+```
+* The API will load the checkpoints, map MossFormer model keys on the fly, and start on [http://localhost:8000](http://localhost:8000).
+* You can view the API Swagger docs at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### Step 3: Start the Next.js Frontend
+Open a new terminal window, navigate to the `frontend/` directory, and start the development server:
+```bash
+cd frontend
+npm run dev
+```
+* The frontend will spin up on [http://localhost:3000](http://localhost:3000).
+* Open the browser and visit [http://localhost:3000](http://localhost:3000) to upload audio and visually verify separate speaker tracks.
+
+### 🧪 Verification / Testing Scripts
+We created audit and integration scripts in the artifacts directories to inspect the internal model states:
+* **`python scratch/test_api_separation.py`**: Spin up the backend, feed it synthetic wave mixtures, and verify response formats and routing logic.
+* **`python scratch/audit_tda.py`**: Audit intermediate tensor shapes and stats of TDA attractors and masks.
+* **`python scratch/audit_predicted_count.py`**: Perform count propagation diagnostics from TDA to the decoder.
+
