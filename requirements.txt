@@ -1,11 +1,14 @@
+# Core Model & Training Dependencies
 torch>=2.0.0
 torchaudio>=2.0.0
 numpy
 pyyaml
 speechbrain>=1.0
-torchaudio
 huggingface_hub
-numpy
 pandas
 soundfile
-torch
+
+# Web Backend API Dependencies
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
