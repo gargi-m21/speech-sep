@@ -85,7 +85,7 @@ class SpeakerSeparationService:
             
         return waveform, target_sr, duration
 
-    def separate(self, input_file_path: str) -> dict:
+    def separate(self, input_file_path: str, num_speakers: str = "auto") -> dict:
         t_start = time.time()
         
         # 1. Audio Preprocessing
@@ -94,40 +94,52 @@ class SpeakerSeparationService:
         
         t_preprocess_end = time.time()
         
-        # 2. Speaker Analysis (First-pass using 3-speaker model)
-        with torch.no_grad():
-            analysis_outputs = self.model_3spk(mixture)
-            
-        presence_probs = analysis_outputs["presence_probs"][0].cpu().tolist()
+        presence_probs = []
         
-        # Post-process count: check the energy of separated sources to filter out noise channels.
-        # Since model_3spk was trained on 3-speaker data only, its query-3 presence probability
-        # is often artificially high. We compute the RMS energy of each separated source.
-        separated_temp = analysis_outputs["waveforms"][0]  # [N_predicted, L]
-        rms_values = [torch.sqrt(torch.mean(separated_temp[i] ** 2)).item() for i in range(separated_temp.size(0))]
-        sorted_rms = sorted(rms_values)
-        
-        if len(sorted_rms) >= 3:
-            energy_ratio = sorted_rms[0] / (sorted_rms[1] + 1e-8)
-            print(f"Analysis RMS: {rms_values}, Sorted: {sorted_rms}, Ratio: {energy_ratio:.4f}")
-            # If the quietest channel has less than 15% of the energy of the second-quietest channel,
-            # it is likely residual noise rather than an active speaker.
-            if energy_ratio < 0.15:
-                predicted_count = 2
-            else:
-                predicted_count = 3
-        else:
-            predicted_count = len(sorted_rms)
-        
-        t_analysis_end = time.time()
-        
-        # 3. Automatic Model Selection
-        if predicted_count <= 2:
+        # 2. Speaker Analysis & Model Selection
+        if num_speakers == "2":
+            predicted_count = 2
             selected_model = self.model_2spk
-            model_used = "MTC-Net (2 Speaker)"
-        else:
+            model_used = "MTC-Net (2 Speaker) [Forced]"
+            t_analysis_end = time.time()
+        elif num_speakers == "3":
+            predicted_count = 3
             selected_model = self.model_3spk
-            model_used = "MTC-Net (3 Speaker)"
+            model_used = "MTC-Net (3 Speaker) [Forced]"
+            t_analysis_end = time.time()
+        else:
+            # "auto": First-pass using 3-speaker model
+            with torch.no_grad():
+                analysis_outputs = self.model_3spk(mixture)
+                
+            presence_probs = analysis_outputs["presence_probs"][0].cpu().tolist()
+            
+            # Post-process count: check the energy of separated sources to filter out noise channels.
+            separated_temp = analysis_outputs["waveforms"][0]  # [N_predicted, L]
+            rms_values = [torch.sqrt(torch.mean(separated_temp[i] ** 2)).item() for i in range(separated_temp.size(0))]
+            sorted_rms = sorted(rms_values)
+            
+            if len(sorted_rms) >= 3:
+                energy_ratio = sorted_rms[0] / (sorted_rms[1] + 1e-8)
+                print(f"Analysis RMS: {rms_values}, Sorted: {sorted_rms}, Ratio: {energy_ratio:.4f}")
+                # If the quietest channel has less than 15% of the energy of the second-quietest channel,
+                # it is likely residual noise rather than an active speaker.
+                if energy_ratio < 0.15:
+                    predicted_count = 2
+                else:
+                    predicted_count = 3
+            else:
+                predicted_count = len(sorted_rms)
+            
+            t_analysis_end = time.time()
+            
+            # Automatic Model Selection
+            if predicted_count <= 2:
+                selected_model = self.model_2spk
+                model_used = "MTC-Net (2 Speaker)"
+            else:
+                selected_model = self.model_3spk
+                model_used = "MTC-Net (3 Speaker)"
             
         # 4. Speech Separation
         t_inference_start = time.time()

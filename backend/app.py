@@ -1,7 +1,7 @@
 import os
 import shutil
 import uuid
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -52,7 +52,10 @@ def read_root():
     }
 
 @app.post("/separate")
-async def separate_audio(file: UploadFile = File(...)):
+async def separate_audio(
+    file: UploadFile = File(...),
+    num_speakers: str = Form("auto")
+):
     if not separation_service:
         raise HTTPException(
             status_code=500,
@@ -83,7 +86,7 @@ async def separate_audio(file: UploadFile = File(...)):
 
     # Run separation
     try:
-        result = separation_service.separate(temp_file_path)
+        result = separation_service.separate(temp_file_path, num_speakers=num_speakers)
     except Exception as e:
         raise HTTPException(
             status_code=500,

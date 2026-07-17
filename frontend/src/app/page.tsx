@@ -37,6 +37,7 @@ const ARCHITECTURE_STEPS = [
 export default function Home() {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [numSpeakers, setNumSpeakers] = useState<string>("auto");
   const [fileStats, setFileStats] = useState<{ size: string; duration: string } | null>(null);
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -155,6 +156,7 @@ export default function Home() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("num_speakers", numSpeakers);
 
     try {
       const response = await fetch("http://localhost:8000/separate", {
@@ -194,6 +196,7 @@ export default function Home() {
     setError(null);
     setIsProcessing(false);
     setCurrentStep(0);
+    setNumSpeakers("auto");
   };
 
   return (
@@ -334,6 +337,23 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Speaker selection */}
+              {file && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Speaker Model</label>
+                  <select
+                    value={numSpeakers}
+                    onChange={(e) => setNumSpeakers(e.target.value)}
+                    disabled={isProcessing}
+                    className="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-slate-200 focus:border-purple-500/50 outline-none transition-all disabled:opacity-50"
+                  >
+                    <option value="auto">Auto-Detect (First-Pass Analysis)</option>
+                    <option value="2">Force 2 Speakers (MiniLibriMix Model)</option>
+                    <option value="3">Force 3 Speakers (Libri3Mix Model)</option>
+                  </select>
                 </div>
               )}
 
