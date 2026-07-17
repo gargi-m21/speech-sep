@@ -98,8 +98,26 @@ class SpeakerSeparationService:
         with torch.no_grad():
             analysis_outputs = self.model_3spk(mixture)
             
-        predicted_count = int(analysis_outputs["predicted_count"][0].item())
         presence_probs = analysis_outputs["presence_probs"][0].cpu().tolist()
+        
+        # Post-process count: check the energy of separated sources to filter out noise channels.
+        # Since model_3spk was trained on 3-speaker data only, its query-3 presence probability
+        # is often artificially high. We compute the RMS energy of each separated source.
+        separated_temp = analysis_outputs["waveforms"][0]  # [N_predicted, L]
+        rms_values = [torch.sqrt(torch.mean(separated_temp[i] ** 2)).item() for i in range(separated_temp.size(0))]
+        sorted_rms = sorted(rms_values)
+        
+        if len(sorted_rms) >= 3:
+            energy_ratio = sorted_rms[0] / (sorted_rms[1] + 1e-8)
+            print(f"Analysis RMS: {rms_values}, Sorted: {sorted_rms}, Ratio: {energy_ratio:.4f}")
+            # If the quietest channel has less than 15% of the energy of the second-quietest channel,
+            # it is likely residual noise rather than an active speaker.
+            if energy_ratio < 0.15:
+                predicted_count = 2
+            else:
+                predicted_count = 3
+        else:
+            predicted_count = len(sorted_rms)
         
         t_analysis_end = time.time()
         
